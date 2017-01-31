@@ -18,14 +18,14 @@ class Router:
             'if_number': '.1.3.6.1.2.1.2.1.0',
             'sys_uptime': '.1.3.6.1.2.1.1.3.0'}
 
-    results = {'sys_contact': None,
-               'sys_name': None,
-               'sys_location': None,
-               'if_number': None,
-               'sys_uptime': None}
-
     def __init__(self, ip_addr):
         self.ip_addr = ip_addr
+
+        self.results = {'sys_contact': None,
+                   'sys_name': None,
+                   'sys_location': None,
+                   'if_number': None,
+                   'sys_uptime': None}
 
     def snmpgetv1(self, community, host, oid):
         '''
