@@ -12,24 +12,30 @@ def snmpgetv1(community, host, oid):
     Generic wrapper for SNMP get version 1
     '''
 
-    result = subprocess.check_output(["snmpget", "-v", "1",
+    output = subprocess.check_output(["snmpget", "-v", "1",
                                       "-c", community, host, oid])
+    result = output.rsplit(output, ':', 0)
+    return str(result)
 
 def snmpgetv2(community, host, oid):
     '''
     Generic wrapper for SNMP get version 2
     '''
 
-    result = subprocess.check_output(["snmpget", "-v", "2c",
+    output = subprocess.check_output(["snmpget", "-v", "2c",
                                       "-c", community, host, oid])
+    result = output.rsplit(output, ':', 0)
+    return str(result)
 
 def snmpgetv3(community, user, host, oid):
     '''
     Generic wrapper for SNMP get version 3
     '''
 
-    result = subprocess.check_output(["snmpget", "-v", "3",
+    output = subprocess.check_output(["snmpget", "-v", "3",
                                       "-c", community, "-u", user, host, oid])
+    result = output.rsplit(output, ':', 0)
+    return str(result)
 
 def main():
     '''
