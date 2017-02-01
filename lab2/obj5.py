@@ -27,7 +27,7 @@ class Router:
                      'ifPhysAddress': '.1.3.6.1.2.1.2.2.1.6',
                      'ifAdminStatus': '.1.3.6.1.2.1.2.2.1.7',
                      'ifInUcastPkts': '.1.3.6.1.2.1.2.2.1.11'}
-                     
+
         self.ip_addr = ip_addr
         self.community = community
 
@@ -45,7 +45,7 @@ class Router:
 
     def snmpbulkwalkv2(self, oid):
         '''
-        Generic wrapper for SNMP bulkget version 2
+        Generic wrapper for SNMP bulkwalk version 2
         '''
 
         output = subprocess.check_output(["snmpbulkwalk", "-v", "2c",
@@ -73,9 +73,8 @@ class Router:
 
 def main():
     '''
-    Define host list
-    Define OID list
-    Iterate (Profit!)
+    Most of the magic happens within the Router class
+    Hopefully the data is there!
     '''
 
     router1 = Router('198.51.100.3', 'public')
