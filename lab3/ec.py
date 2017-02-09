@@ -45,6 +45,7 @@ def main():
     for instance_id in running_instances:
         cpu = get_statistic(client, 'CPUUtilization', 'Percent', 'Maximum', instance_id)
         if float(cpu) > THRESHOLD:
+            stop_instance(ec2, instance_id)
             print instance_id + " exceeded CPU threshold: " + str(THRESHOLD) + " ... stopping instance"
         else:
             print instance_id + " below CPU threshold: " + str(THRESHOLD)
