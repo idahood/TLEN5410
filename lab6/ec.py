@@ -8,6 +8,9 @@ from lab6 import Router
 from threading import Thread
 
 def show_run(router):
+    '''
+        Grabs show run output from router, writes out as ROUTER_NAME.cfg
+    '''
     pre = router.send_cmd('show run').split('\n')
     pre.pop(0) #remove command
     pre.pop(-1) #remove router name
@@ -46,7 +49,9 @@ def main():
         thread = Thread(show_run(router))
         thread.start()
 
-    subprocess.call('s3cmd', 'put', '*.cfg', 's3://TLEN5410')
+    for router in router_list:
+        subprocess.check_call(['s3cmd', 'put',
+            router.name + '.cfg', 's3://TLEN5410'])
 
 if __name__ == '__main__':
     main()
