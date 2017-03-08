@@ -6,9 +6,12 @@ import os
 import pexpect
 import re
 import subprocess
-from time import sleep
+import time
 
 class Router:
+    '''
+        
+    '''
     def __init__(self, ipAddr=None, user=None, password=None, name=None, port=22):
         MAX_TIMEOUT = 3
         self.ipAddr = ipAddr
@@ -54,24 +57,39 @@ def deploy_bgp(router, bgp_info):
     '''
     router.sendCmd('configure terminal')
     for prefix in bgp_info[router.name]['bgp']['AdvPrefixes']:
-        router.sendCmd('ip prefix-list ADVPREFIX permit ' + prefix)
-    router.sendCmd('router bgp ' + bgp_info[router.name]['bgp']['LocalAS'])
-    router.sendCmd('bgp router-id ' + bgp_info[router.name]['bgp']['RouterID'])
+        router.sendCmd('ip prefix-list ADVPREFIX permit {}'.format(prefix))
+    router.sendCmd('router bgp {}'.format(bgp_info[router.name]['bgp']['LocalAS']))
+    router.sendCmd('bgp router-id {}'.format(bgp_info[router.name]['bgp']['RouterID']))
     router.sendCmd('redistribute connected')
     for neighbor in bgp_info[router.name]['neighbors']:
-        router.sendCmd('neighbor ' + neighbor['ip'] + ' remote-as ' + neighbor['RemoteAS'])
-        router.sendCmd('neighbor ' + neighbor['ip'] + ' shutdown')
-        router.sendCmd('neighbor ' + neighbor['ip'] + ' prefix-list ADVPREFIX out')
-        router.sendCmd('no neighbor ' + neighbor['ip'] + ' shutdown')
+        router.sendCmd('neighbor {} remote-as'.format(neighbor['RemoteAS']))
+        router.sendCmd('neighbor {} shutdown'.format(neighbor['RemoteAS']))
+        router.sendCmd('neighbor {} prefix-list ADVPREFIX out'.format(neighbor['RemoteAS']))
+        router.sendCmd('no neighbor {} shutdown'.format(neighbor['RemoteAS']))
     router.sendCmd('end')
 
 def show_ip_bgp_nei(router):
+    '''
+        Some text munging to extract BGP neighbor, AS, and state information.
+        A better solution would be textFSM, but it violates the pip install requirement
+    '''
+
+    result = []
     pre = router.sendCmd('show ip bgp neighbors').split('\n')
     for line in pre:
         if re.match('^BGP neighbor is ', line):
-            print line
-        if re.match('^  BGP state = ', line):
-            print line
+            words = re.split('[ |,]', line)
+            neighbor = words[3]
+            asn = words [8]
+            for line in pre:
+                if re.match('^  BGP state = ', line):
+                    words = re.split('[ |,]', line)
+                    state = words[5]
+                    result.append((neighbor, asn, state))
+    print router.name
+    print '{:20s}{:20s}{:20s}'.format('BGP Neighbor IP', 'BGP Neighbor AS', 'BGP Neighbor State')
+    for r in result:
+        print '{:20s}{:20s}{:20s}'.format(r[0], r[1], r[2])
 
 def main():
     '''
@@ -104,7 +122,7 @@ def main():
         deploy_bgp(r, bgp_info)
 
     print 'Waiting for BGP to converge...'
-    sleep(60) #wait for BGP to converge
+    time.sleep(60) #wait for BGP to converge
     '''
     for r in router_list:
         show_ip_bgp_nei(r)
