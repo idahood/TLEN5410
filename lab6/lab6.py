@@ -10,7 +10,7 @@ import time
 
 class Router:
     '''
-        
+        Opens pexpect channel, cleans up terminal length, sends commands
     '''
     def __init__(self, ipAddr=None, user=None, password=None, name=None, port=22):
         MAX_TIMEOUT = 3
@@ -46,7 +46,7 @@ def test_ping(ip_addr):
         Attempts to ping an IP address. Returns True if succesful
     '''
     result = False
-    ping_response = subprocess.call(['ping', '-c', '1', '-t', '1', ip_addr], stdout=open(os.devnull, 'wb'))
+    ping_response = subprocess.call(['ping', '-c', '2', '-t', '1', ip_addr], stdout=open(os.devnull, 'wb'))
     if ping_response == 0:
         result = True
     return result
@@ -57,15 +57,15 @@ def deploy_bgp(router, bgp_info):
     '''
     router.sendCmd('configure terminal')
     for prefix in bgp_info[router.name]['bgp']['AdvPrefixes']:
-        router.sendCmd('ip prefix-list ADVPREFIX permit {}'.format(prefix))
+        router.sendCmd('ip prefix-list OUTBOUND permit {}'.format(prefix))
     router.sendCmd('router bgp {}'.format(bgp_info[router.name]['bgp']['LocalAS']))
     router.sendCmd('bgp router-id {}'.format(bgp_info[router.name]['bgp']['RouterID']))
     router.sendCmd('redistribute connected')
     for neighbor in bgp_info[router.name]['neighbors']:
-        router.sendCmd('neighbor {} remote-as'.format(neighbor['RemoteAS']))
-        router.sendCmd('neighbor {} shutdown'.format(neighbor['RemoteAS']))
-        router.sendCmd('neighbor {} prefix-list ADVPREFIX out'.format(neighbor['RemoteAS']))
-        router.sendCmd('no neighbor {} shutdown'.format(neighbor['RemoteAS']))
+        router.sendCmd('neighbor {} remote-as {}'.format(neighbor['ip'],neighbor['RemoteAS']))
+        router.sendCmd('neighbor {} shutdown'.format(neighbor['ip']))
+        router.sendCmd('neighbor {} prefix-list OUTBOUND out'.format(neighbor['ip']))
+        router.sendCmd('no neighbor {} shutdown'.format(neighbor['ip']))
     router.sendCmd('end')
 
 def show_ip_bgp_nei(router):
@@ -117,13 +117,13 @@ def main():
 
     for i in ssh_info:
         router_list.append(Router(i['interface']['f0/0']['ip'], i['credentials']['username'], i['credentials']['password'], i['name']))
-    '''
+
     for r in router_list:
         deploy_bgp(r, bgp_info)
 
     print 'Waiting for BGP to converge...'
     time.sleep(60) #wait for BGP to converge
-    '''
+
     for r in router_list:
         show_ip_bgp_nei(r)
 
