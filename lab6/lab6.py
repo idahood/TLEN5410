@@ -4,8 +4,9 @@ import argparse
 import json
 import os
 import pexpect
+import re
 import subprocess
-from pprint import pprint
+from time import sleep
 
 class Router:
     def __init__(self, ipAddr=None, user=None, password=None, name=None, port=22):
@@ -48,6 +49,9 @@ def test_ping(ip_addr):
     return result
 
 def deploy_bgp(router, bgp_info):
+    '''
+        Deploys BGP, adds neighbors, restricts advertised prefixes
+    '''
     router.sendCmd('configure terminal')
     for prefix in bgp_info[router.name]['bgp']['AdvPrefixes']:
         router.sendCmd('ip prefix-list ADVPREFIX permit ' + prefix)
@@ -60,6 +64,14 @@ def deploy_bgp(router, bgp_info):
         router.sendCmd('neighbor ' + neighbor['ip'] + ' prefix-list ADVPREFIX out')
         router.sendCmd('no neighbor ' + neighbor['ip'] + ' shutdown')
     router.sendCmd('end')
+
+def show_ip_bgp_nei(router):
+    pre = router.sendCmd('show ip bgp neighbors').split('\n')
+    for line in pre:
+        if re.match('^BGP neighbor is ', line):
+            print line
+        if re.match('^  BGP state = ', line):
+            print line
 
 def main():
     '''
@@ -87,12 +99,15 @@ def main():
 
     for i in ssh_info:
         router_list.append(Router(i['interface']['f0/0']['ip'], i['credentials']['username'], i['credentials']['password'], i['name']))
-
+    '''
     for r in router_list:
         deploy_bgp(r, bgp_info)
 
+    print 'Waiting for BGP to converge...'
+    sleep(60) #wait for BGP to converge
+    '''
     for r in router_list:
-        print r.sendCmd('sh bgp ipv4 unicast neighbors')
+        show_ip_bgp_nei(r)
 
 if __name__=='__main__':
     main()
