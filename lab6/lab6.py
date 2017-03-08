@@ -3,8 +3,29 @@
 import argparse
 import json
 import os
+import pexpect
 import subprocess
 from pprint import pprint
+
+class Router:
+    def __init__(self, ipAddr=None, user=None, password=None, name=None, port=22):
+        MAX_TIMEOUT = 3
+        self.ipAddr = ipAddr
+        self.user = user
+        self.password = password
+        self.port = port
+        self.name = name
+
+        self.sshConn = pexpect.spawn('ssh -l {} {} -p {}'.format(self.user, self.ipAddr, self.port))
+        self.sshConn.timeout = MAX_TIMEOUT
+        self.sshConn.expect('[P|p]assword:')
+        self.sendCmd(self.password)
+        self.sendCmd('terminal length 0')
+
+    def sendCmd(self, cmd):
+        self.sshConn.sendline(cmd.rstrip())
+        self.sshConn.expect('[#|>]')
+        return self.sshConn.before
 
 def load_json(filename):
     '''
@@ -26,6 +47,20 @@ def test_ping(ip_addr):
         result = True
     return result
 
+def deploy_bgp(router, bgp_info):
+    router.sendCmd('configure terminal')
+    for prefix in bgp_info[router.name]['bgp']['AdvPrefixes']:
+        router.sendCmd('ip prefix-list ADVPREFIX permit ' + prefix)
+    router.sendCmd('router bgp ' + bgp_info[router.name]['bgp']['LocalAS'])
+    router.sendCmd('bgp router-id ' + bgp_info[router.name]['bgp']['RouterID'])
+    router.sendCmd('redistribute connected')
+    for neighbor in bgp_info[router.name]['neighbors']:
+        router.sendCmd('neighbor ' + neighbor['ip'] + ' remote-as ' + neighbor['RemoteAS'])
+        router.sendCmd('neighbor ' + neighbor['ip'] + ' shutdown')
+        router.sendCmd('neighbor ' + neighbor['ip'] + ' prefix-list ADVPREFIX out')
+        router.sendCmd('no neighbor ' + neighbor['ip'] + ' shutdown')
+    router.sendCmd('end')
+
 def main():
     '''
         TLEN 5410 Lab 6
@@ -41,13 +76,23 @@ def main():
     ssh_info = load_json(args.ssh)
     bgp_info = load_json(args.bgp)
 
-    pprint(ssh_info)
-    pprint(bgp_info)
+    for i in ssh_info:
+        if test_ping(i['interface']['f0/0']['ip']):
+            print i['name'] + ' is reachable'
+        else:
+            print i['name'] + ' is unreachable'
+            exit(1)
+
+    router_list = []
 
     for i in ssh_info:
-        if not test_ping(i['ip']['f0/0'].split('/')[0]):
-            print i['name'] + " unreachable"
-            exit(1)
+        router_list.append(Router(i['interface']['f0/0']['ip'], i['credentials']['username'], i['credentials']['password'], i['name']))
+
+    for r in router_list:
+        deploy_bgp(r, bgp_info)
+
+    for r in router_list:
+        print r.sendCmd('sh bgp ipv4 unicast neighbors')
 
 if __name__=='__main__':
     main()
