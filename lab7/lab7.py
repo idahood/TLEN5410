@@ -67,13 +67,13 @@ app = Flask(__name__)
 def index():
     return('Hello World')
 
-@app.route('/R1', methods=['GET', 'POST'])
-def R1():
-    title_text = Markup('R1')
-    body_text = Markup('<h1>Login Credentials for R1</h1><br>Enter Username:<br><form method=post action=/R1><input type=text name=username></input><br>Enter Password:<br><input type=password name=password> </input<br><h1>OSPF Information for R1</h1><br>OSPF Process ID:<br><input type=text name=proc_id> </input><br>OSPF Area ID:<br><input type=text name=area_id> </input><br>OSPF Area Interfaces (comma separated)<br><input type=text name=area_interfaces> </input><br>OSPF Backbone Interfaces (comma separated):<br><input type=text name=backbone_interfaces> </input><br><input type=submit name=submit value=submit></form>')
+@app.route('/R<int:n>', methods=['GET', 'POST'])
+def Router(n):
+    name = 'R{}'.format(n)
+    title_text = Markup(name)
+    body_text = Markup('<h1>Login Credentials for {}</h1><br>Enter Username:<br><form method=post action=/{}><input type=text name=username></input><br>Enter Password:<br><input type=password name=password> </input<br><h1>OSPF Information for {}</h1><br>OSPF Process ID:<br><input type=text name=proc_id> </input><br>OSPF Area ID:<br><input type=text name=area_id> </input><br>OSPF Area Interfaces (comma separated)<br><input type=text name=area_interfaces> </input><br>OSPF Backbone Interfaces (comma separated):<br><input type=text name=backbone_interfaces> </input><br><input type=submit name=submit value=submit></form>'.format(name, name, name))
 
     if request.method == 'POST':
-        name = 'R1'
         username = request.form['username']
         password = request.form['password']
         proc_id = request.form['proc_id']
@@ -86,12 +86,12 @@ def R1():
         t = (name,)
         c.execute("SELECT name FROM ospf WHERE name=?", t)
 
-        if c.fetchone()[0] == name:
-            c.execute('UPDATE ospf SET username = ?, password = ?, proc_id = ?, area_id = ?, area_ints = ?, backbone_ints = ? WHERE name = ?', (username, password, proc_id, area_id, area_interfaces, backbone_interfaces, name))
-        else:
+        if c.fetchone() == None:
             c.execute('INSERT INTO ospf VALUES (?,?,?,?,?,?,?)', (name,
                 username, password, proc_id, area_id, 
                 area_interfaces, backbone_interfaces))
+        else:
+            c.execute('UPDATE ospf SET username = ?, password = ?, proc_id = ?, area_id = ?, area_ints = ?, backbone_ints = ? WHERE name = ?', (username, password, proc_id, area_id, area_interfaces, backbone_interfaces, name))
 
         conn.commit()
 
