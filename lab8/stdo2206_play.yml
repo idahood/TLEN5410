@@ -1,0 +1,49 @@
+- hosts: all
+  tasks:
+    - name: Install packages
+      apt: pkg={{ item }} state=installed update_cache=true
+      with_items:
+        - python-pip
+        - expect
+        - vsftpd
+        - apache2
+      become: true
+
+    - name: Add groups
+      group:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - Attack
+        - Defense
+        - Captain
+      become: true
+
+- hosts: liverpool
+  tasks:
+    - name: Define Attackers
+      user:
+        name: "{{ item }}"
+        group: Attack
+      with_items:
+        - hkewell
+        - mowen
+      become: true
+
+    - name: Define Defenders
+      user:
+        name: "{{ item }}"
+        group: Defense
+      with_items:
+        - jcarragher
+        - dagger
+      become: true
+
+    - name: Define Captain
+      user:
+        name: "{{ item }}"
+        groups: Captain,sudo
+      with_items:
+        - sgerrard
+      become: true
+
